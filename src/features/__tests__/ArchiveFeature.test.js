@@ -1239,6 +1239,154 @@ describe("obsidian-tasks dates", () => {
     });
 });
 
+describe ("obsidian-task dates alternative syntax", () => {
+    test("Get resolved in headings", async () => {
+        await archiveTasksAndCheckActiveFile(
+            ["- [x] foo [completion:: 2023-01-01]"],
+            ["", "# 2023-01-01", "", "- [x] foo [completion:: 2023-01-01]", ""],
+            {
+                settings: {
+                    ...DEFAULT_SETTINGS_FOR_TESTS,
+                    headings: [
+                        {
+                            text: placeholders.OBSIDIAN_TASKS_COMPLETED_DATE,
+                            // obsidianTasksCompletedDateFormat: DEFAULT_DATE_FORMAT,
+                        },
+                    ],
+                },
+            }
+        );
+    });
+
+    test("Get resolved in list items", async () => {
+        await archiveTasksAndCheckActiveFile(
+            ["- [x] foo [completion:: 2023-01-01]"],
+            ["", "- 2023-01-01", "\t- [x] foo [completion:: 2023-01-01]", ""],
+            {
+                settings: {
+                    ...DEFAULT_SETTINGS_FOR_TESTS,
+                    archiveUnderListItems: true,
+                    listItems: [{ text: placeholders.OBSIDIAN_TASKS_COMPLETED_DATE }],
+                    headings: [],
+                },
+            }
+        );
+    });
+
+    test("Get resolved in file names", async () => {
+        const fileWithDate = createTFile({ path: "2023-01-01.md" });
+
+        await archiveTasks(["- [x] foo [completion:: 2023-01-01]"], {
+            settings: {
+                ...DEFAULT_SETTINGS_FOR_TESTS,
+                archiveUnderHeading: false,
+                archiveToSeparateFile: true,
+                defaultArchiveFileName: placeholders.OBSIDIAN_TASKS_COMPLETED_DATE,
+            },
+            vaultFiles: [fileWithDate],
+        });
+
+        expect(fileWithDate.state).toEqual(["", "- [x] foo [completion:: 2023-01-01]", ""]);
+    });
+
+    test("Work with custom formats in headings & lists", async () => {
+        await archiveTasksAndCheckActiveFile(
+            ["- [x] foo [completion:: 2023-01-01]"],
+            ["", "# 2023", "", "- [x] foo [completion:: 2023-01-01]", ""],
+            {
+                settings: {
+                    ...DEFAULT_SETTINGS_FOR_TESTS,
+                    headings: [
+                        {
+                            text: placeholders.OBSIDIAN_TASKS_COMPLETED_DATE,
+                            obsidianTasksCompletedDateFormat: "YYYY",
+                        },
+                    ],
+                },
+            }
+        );
+    });
+
+    test("Work with custom formats in file names", async () => {
+        const fileWithDate = createTFile({ path: "2023.md" });
+
+        await archiveTasks(["- [x] foo [completion:: 2023-01-01]"], {
+            settings: {
+                ...DEFAULT_SETTINGS_FOR_TESTS,
+                archiveUnderHeading: false,
+                archiveToSeparateFile: true,
+                obsidianTasksCompletedDateFormat: "YYYY",
+                defaultArchiveFileName: placeholders.OBSIDIAN_TASKS_COMPLETED_DATE,
+            },
+            vaultFiles: [fileWithDate],
+        });
+
+        expect(fileWithDate.state).toEqual(["", "- [x] foo [completion:: 2023-01-01]", ""]);
+    });
+
+    test("Tasks with different dates get to different files/headings/lists", async () => {
+        await archiveTasksAndCheckActiveFile(
+            ["- [x] foo [completion:: 2023-01-01]", "- [x] bar [completion:: 2023-01-02]"],
+            [
+                "",
+                "# 2023-01-01",
+                "",
+                "- [x] foo [completion:: 2023-01-01]",
+                "",
+                "# 2023-01-02",
+                "",
+                "- [x] bar [completion:: 2023-01-02]",
+                "",
+            ],
+            {
+                settings: {
+                    ...DEFAULT_SETTINGS_FOR_TESTS,
+                    headings: [
+                        {
+                            text: placeholders.OBSIDIAN_TASKS_COMPLETED_DATE,
+                        },
+                    ],
+                },
+            }
+        );
+    });
+    test("Items for different dates get sorted", async () => {
+        await archiveTasksAndCheckActiveFile(
+            [
+                "- [x] foo [completion:: 2023-01-01]",
+                "- [x] baz [completion:: 2023-01-03]",
+                "- [x] bar [completion:: 2023-01-02]",
+            ],
+            [
+                "",
+                "# 2023-01-01",
+                "",
+                "- [x] foo [completion:: 2023-01-01]",
+                "",
+                "# 2023-01-02",
+                "",
+                "- [x] bar [completion:: 2023-01-02]",
+                "",
+                "# 2023-01-03",
+                "",
+                "- [x] baz [completion:: 2023-01-03]",
+                "",
+            ],
+            {
+                settings: {
+                    ...DEFAULT_SETTINGS_FOR_TESTS,
+                    headings: [
+                        {
+                            text: placeholders.OBSIDIAN_TASKS_COMPLETED_DATE,
+                        },
+                    ],
+                },
+            }
+        );
+    });
+});
+
+
 describe("Archive only if subtasks are done", () => {
     test("Skips tasks with incomplete subtasks during shallow archiving", async () => {
         await archiveTasksAndCheckActiveFile(
